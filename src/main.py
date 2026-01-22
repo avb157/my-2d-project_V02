@@ -2,7 +2,7 @@
 import pygame
 from player import Player
 from level import Level
-from sound import SoundManager  # ← ДОБАВЛЕНО
+from ui.sound import SoundManager  # ← ДОБАВЛЕНО
 import sys
 
 # Граница смерти: если игрок падает ниже этой Y-координаты — умирает
