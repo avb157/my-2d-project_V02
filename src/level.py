@@ -7,21 +7,21 @@ import math
 def create_level():
     platforms = []
     
-    # === ЛЕВАЯ НЕПРОХОДИМАЯ СТЕНА: от пола до потолка + козырёк ===
-    platforms.append(pygame.Rect(0, 0, 60, 600))        # стена от y=0 до y=600 (весь экран)
-    platforms.append(pygame.Rect(0, 0, 400, 60))        # козырёк сверху — перекрывает выход
+    # ЛЕВАЯ НЕПРОХОДИМАЯ СТЕНА: от пола до потолка + козырёк 
+    platforms.append(pygame.Rect(0, 0, 60, 600))        
+    platforms.append(pygame.Rect(0, 0, 400, 60))        
     
-    # === ОСНОВНАЯ ЗЕМЛЯ (длинная) ===
-    platforms.append(pygame.Rect(0, 580, 3500, 40))     # очень длинная земля
+    # ОСНОВНАЯ ЗЕМЛЯ (длинная)
+    platforms.append(pygame.Rect(0, 580, 3500, 40))    
     
-    # === СЕКЦИЯ 1: Начало — первые платформы и дыра ===
+    # СЕКЦИЯ 1: Начало — первые платформы и дыра
     platforms.append(pygame.Rect(200, 500, 100, 25))
-    platforms.append(pygame.Rect(400, 500, 100, 25))    # между ними — пропасть!
+    platforms.append(pygame.Rect(400, 500, 100, 25))    
     platforms.append(pygame.Rect(600, 440, 90, 25))
     
-    # === СЕКЦИЯ 2: Вертикальный паркур (стены + уступы) ===
-    platforms.append(pygame.Rect(800, 150, 40, 430))    # левая стена
-    platforms.append(pygame.Rect(950, 150, 40, 430))    # правая стена
+    # СЕКЦИЯ 2: Вертикальный паркур (стены + уступы) 
+    platforms.append(pygame.Rect(800, 150, 40, 430))    
+    platforms.append(pygame.Rect(950, 150, 40, 430))    
     # Уступы для wall jump
     platforms.append(pygame.Rect(840, 500, 110, 20))
     platforms.append(pygame.Rect(840, 420, 110, 20))
@@ -29,24 +29,24 @@ def create_level():
     platforms.append(pygame.Rect(840, 260, 110, 20))
     platforms.append(pygame.Rect(840, 180, 110, 20))
     
-    # === СЕКЦИЯ 3: Длинная пропасть с островками ===
+    # СЕКЦИЯ 3: Длинная пропасть с островками
     platforms.append(pygame.Rect(1150, 480, 70, 25))
     platforms.append(pygame.Rect(1350, 420, 70, 25))
     platforms.append(pygame.Rect(1550, 360, 70, 25))
     platforms.append(pygame.Rect(1750, 300, 70, 25))
     
-    # === СЕКЦИЯ 4: Высокие башни и финал ===
+    # СЕКЦИЯ 4: Высокие башни и финал
     platforms.append(pygame.Rect(2000, 250, 60, 330))
     platforms.append(pygame.Rect(2250, 200, 60, 380))
     platforms.append(pygame.Rect(2500, 150, 150, 30))
     
-    # === СЕКЦИЯ 5: Финальные препятствия ===
+    # СЕКЦИЯ 5: Финальные препятствия
     platforms.append(pygame.Rect(2800, 400, 80, 25))
     platforms.append(pygame.Rect(3000, 340, 80, 25))
     platforms.append(pygame.Rect(3200, 280, 80, 25))
-    platforms.append(pygame.Rect(3400, 220, 100, 30))  # конечная платформа
+    platforms.append(pygame.Rect(3400, 220, 100, 30))  
     
-    # === Мелкие платформы для точных прыжков ===
+    # Мелкие платформы для точных прыжков
     platforms.append(pygame.Rect(1050, 520, 60, 20))
     platforms.append(pygame.Rect(1900, 520, 60, 20))
     platforms.append(pygame.Rect(2700, 520, 60, 20))
@@ -82,7 +82,7 @@ class Level:
         self.update(dt_ms)
         width, height = screen.get_size()
 
-        # Фон: тёмное небо
+        # Фон (тёмное небо)
         bg_surface = pygame.Surface((width, height))
         for y in range(height):
             t = y / height
@@ -112,7 +112,7 @@ class Level:
                 pygame.draw.circle(glow, (*color, 80), (6, 6), 6)
                 screen.blit(glow, (int(screen_x) - 6, int(screen_y) - 6))
 
-        # Городские здания (параллакс)
+        # Городские здания 
         building_colors = [(20, 20, 35), (25, 25, 40)]
         buildings = [
             (-300, 400, 200, 200),
@@ -142,7 +142,7 @@ class Level:
             edge_color = random.choice([(80, 40, 120), (40, 100, 150), (120, 60, 80)])
             pygame.draw.rect(screen, edge_color, rect_on_screen, 2)
 
-        # === ФИНИШНАЯ ЗОНА ===
+        # ФИНИШНАЯ ЗОНА
         finish_on_screen = (
             self.finish_zone.x - camera.x,
             self.finish_zone.y - camera.y,

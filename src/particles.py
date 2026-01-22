@@ -16,9 +16,9 @@ class Particle:
         self.vel_y = random.uniform(-speed, speed)
 
     def update(self, dt_ms):
-        self.x += self.vel_x * (dt_ms / 16.7)  # нормализация под 60 FPS
+        self.x += self.vel_x * (dt_ms / 16.7)  
         self.y += self.vel_y * (dt_ms / 16.7)
-        self.vel_y += 0.1 * (dt_ms / 16.7)  # гравитация
+        self.vel_y += 0.1 * (dt_ms / 16.7)  
         self.age += dt_ms
         return self.age > self.lifetime
 

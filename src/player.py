@@ -14,7 +14,7 @@ class Player:
         self.vel_x = 0
         self.vel_y = 0
         
-        # === Физика (без изменений) ===
+        # Физика
         self.acceleration = 0.6
         self.friction = 0.85
         self.max_speed = 7
@@ -37,25 +37,25 @@ class Player:
         self.dash_duration = 8
         self.dash_speed = 12
 
-        # === ГРАФИКА: Анимации ===
+        # Анимации
         self.animations = {}
         self.load_animations()
         self.current_animation = self.animations['idle']
         self.facing_right = True
         self.image = self.current_animation.get_current_frame()
 
-        # === Частицы ===
+        # Частицы
         self.particles = []
 
         # Для определения состояния
         self.state = 'idle'
 
-        self.health = 100  # ← ДОБАВЛЕНО для HUD
+        self.health = 100 
 
-        # === ХИТБОКС — для коллизий ===
-        self.hitbox_size = (32, 32)  # ← фиксированный размер спрайта
+        # ХИТБОКС — для коллизий
+        self.hitbox_size = (32, 32)  
         self.hitbox = pygame.Rect(x, y, *self.hitbox_size)
-        self.rect = self.hitbox  # ← rect теперь = hitbox (упрощает коллизии)
+        self.rect = self.hitbox 
 
     def load_animations(self):
         """Загружает анимации из папок. Если папок нет — создаёт цветные заглушки."""
@@ -90,22 +90,21 @@ class Player:
                 pygame.draw.rect(surf, color, (0, 0, 32, 32))
                 frames = [surf]
 
-            # === УСТАНАВЛИВАЕМ 12 КАДРОВ В СЕКУНДУ (83 мс на кадр) ===
-            duration = 200  # ← ключевое изменение!
+            # УСТАНАВЛИВАЕМ 12 КАДРОВ В СЕКУНДУ
+            duration = 200  
             loop = True
 
-            # Исключения: некоторые анимации делаем чуть медленнее для выразительности
             if state == 'idle':
-                duration = 250  # 4 FPS — очень спокойное стояние
+                duration = 250 
             elif state == 'run':
-                duration = 167  # 6 FPS — бег чуть быстрее
+                duration = 167 
             elif state == 'jump' or state == 'roll':
-                duration = 250  # 4 FPS — прыжок и перекат как "удар"
+                duration = 250  
                 loop = False
             elif state == 'fall':
-                duration = 200  # 5 FPS
+                duration = 200  
             elif state == 'wall_slide' or state == 'climb':
-                duration = 250  # 4 FPS — лазание медленное и тяжёлое
+                duration = 250  
 
             self.animations[state] = Animation(frames, duration, loop)
 
@@ -127,7 +126,7 @@ class Player:
             return 'idle'
 
     def add_dust_particles(self):
-        if random.random() < 0.3:  # частота
+        if random.random() < 0.3: 
             for _ in range(3):
                 p = Particle(
                     x=self.rect.centerx,
@@ -152,13 +151,12 @@ class Player:
             self.particles.append(p)
 
     def update(self, platforms: List[pygame.Rect], dt_ms: int):
-        # === Сохраняем предыдущее состояние для сравнения ===
+        # Сохраняем предыдущее состояние для сравнения
         prev_state = self.state
         prev_on_ground = self.on_ground
         prev_on_wall = self.on_wall
         prev_is_dashing = self.is_dashing
 
-        # === Вся ваша логика (без изменений!) ===
         keys = pygame.key.get_pressed()
 
         if not self.is_dashing:
@@ -217,7 +215,6 @@ class Player:
         if self.vel_y > 12:
             self.vel_y = 12
 
-        # 🔥 ИСПРАВЛЕНО: правильный порядок движения и коллизий
         # Горизонтальное движение
         self.hitbox.centerx = int(self.x + self.vel_x)
         self.check_collisions(platforms, 'horizontal')
@@ -267,7 +264,7 @@ class Player:
             self.last_dir = -1
             self.facing_right = False
 
-        # === ОБНОВЛЕНИЕ АНИМАЦИИ ===
+        # ОБНОВЛЕНИЕ АНИМАЦИИ
         self.state = self.determine_state()
 
         if self.state != prev_state:

@@ -11,6 +11,6 @@ class Camera:
         self.x = target.x + target.width // 2 - self.width // 2
         self.y = target.y + target.height // 2 - self.height // 2
 
-        # Ограничение (опционально, можно убрать)
+        # Ограничение (опционально)
         self.x = max(0, self.x)
         self.y = max(0, self.y)

@@ -2,12 +2,12 @@
 import pygame
 from player import Player
 from level import Level
-from ui.sound import SoundManager  # ← ДОБАВЛЕНО
+from ui.sound import SoundManager  
 import sys
 
 LEVEL_DEATH_Y = 700
 
-# === UI-КЛАССЫ (встроены для простоты) ===
+# UI-КЛАССЫ
 
 class MainMenu:
     def __init__(self, screen, font):
@@ -169,7 +169,7 @@ class WinScreen:
         return None
 
 
-# === ОСНОВНЫЕ КЛАССЫ ИГРЫ ===
+# ОСНОВНЫЕ КЛАССЫ ИГРЫ
 
 class Camera:
     def __init__(self, width, height):
@@ -219,7 +219,7 @@ def main():
     pause_menu = PauseMenu(screen, font)
     hud = HUD(screen, font, player, start_time)
     death_screen = DeathScreen(screen, font)
-    win_screen = WinScreen(screen, font)  # ← ДОБАВЛЕНО
+    win_screen = WinScreen(screen, font) 
 
     running = True
     while running:
@@ -232,7 +232,7 @@ def main():
                 level, player, start_time = reset_game()
                 camera = Camera(800, 600)
                 hud = HUD(screen, font, player, start_time)
-                win_screen = WinScreen(screen, font)  # ← СБРОС ЭКРАНА ПОБЕДЫ
+                win_screen = WinScreen(screen, font)  
                 sound_manager.resume_music()
                 game_state = "playing"
             elif action == "settings":
@@ -252,7 +252,7 @@ def main():
             if player.health <= 0 or player.rect.top > LEVEL_DEATH_Y:
                 game_state = "dead"
 
-            # 🔥 ПРОВЕРКА ПОБЕДЫ: касание финишной зоны
+            # ПРОВЕРКА ПОБЕДЫ (касание финишной зоны)
             if player.hitbox.colliderect(level.finish_zone):
                 elapsed_sec = (pygame.time.get_ticks() - start_time) // 1000
                 win_screen.set_time(elapsed_sec)
@@ -285,7 +285,7 @@ def main():
                 sound_manager.stop_music()
                 game_state = "menu"
 
-        # 🔥 НОВОЕ СОСТОЯНИЕ: ПОБЕДА
+        # ПОБЕДА
         elif game_state == "win":
             action = win_screen.handle_input()
             win_screen.draw()
