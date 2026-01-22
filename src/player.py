@@ -53,6 +53,8 @@ class Player:
         # Для определения состояния
         self.state = 'idle'
 
+        self.health = 100  # или любое начальное значение
+
     def load_animations(self):
         """Загружает анимации из папок. Если папок нет — создаёт цветные заглушки."""
         sprite_dir = "assets/sprites/player/"
