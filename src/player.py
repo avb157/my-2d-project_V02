@@ -5,13 +5,12 @@ import os
 import random
 from animation import Animation
 from particles import Particle
+from typing import List
 
 class Player:
     def __init__(self, x, y):
         self.x = x
         self.y = y
-        self.width = 32
-        self.height = 48
         self.vel_x = 0
         self.vel_y = 0
         
@@ -38,8 +37,6 @@ class Player:
         self.dash_duration = 8
         self.dash_speed = 12
 
-        self.rect = pygame.Rect(x, y, self.width, self.height)
-
         # === ГРАФИКА: Анимации ===
         self.animations = {}
         self.load_animations()
@@ -53,7 +50,12 @@ class Player:
         # Для определения состояния
         self.state = 'idle'
 
-        self.health = 100  # или любое начальное значение
+        self.health = 100  # ← ДОБАВЛЕНО для HUD
+
+        # === ХИТБОКС — для коллизий ===
+        self.hitbox_size = (32, 32)  # ← фиксированный размер спрайта
+        self.hitbox = pygame.Rect(x, y, *self.hitbox_size)
+        self.rect = self.hitbox  # ← rect теперь = hitbox (упрощает коллизии)
 
     def load_animations(self):
         """Загружает анимации из папок. Если папок нет — создаёт цветные заглушки."""
@@ -67,6 +69,9 @@ class Player:
                 for file in sorted(os.listdir(path)):
                     if file.endswith('.png'):
                         img = pygame.image.load(os.path.join(path, file)).convert_alpha()
+                        # Масштабируем до 32x32, если нужно
+                        if img.get_size() != (32, 32):
+                            img = pygame.transform.scale(img, (32, 32))
                         frames.append(img)
         
             # Если нет спрайтов — создаём цветной прямоугольник как заглушку
@@ -81,8 +86,8 @@ class Player:
                     'climb': (100, 100, 255)
                 }
                 color = color_map.get(state, (255, 255, 255))
-                surf = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-                pygame.draw.rect(surf, color, (0, 0, self.width, self.height))
+                surf = pygame.Surface((32, 32), pygame.SRCALPHA)
+                pygame.draw.rect(surf, color, (0, 0, 32, 32))
                 frames = [surf]
 
             # === УСТАНАВЛИВАЕМ 12 КАДРОВ В СЕКУНДУ (83 мс на кадр) ===
@@ -146,7 +151,7 @@ class Player:
             )
             self.particles.append(p)
 
-    def update(self, platforms, dt_ms):
+    def update(self, platforms: List[pygame.Rect], dt_ms: int):
         # === Сохраняем предыдущее состояние для сравнения ===
         prev_state = self.state
         prev_on_ground = self.on_ground
@@ -212,14 +217,21 @@ class Player:
         if self.vel_y > 12:
             self.vel_y = 12
 
-        self.x += self.vel_x
-        self.rect.x = int(self.x)
+        # 🔥 ИСПРАВЛЕНО: правильный порядок движения и коллизий
+        # Горизонтальное движение
+        self.hitbox.centerx = int(self.x + self.vel_x)
         self.check_collisions(platforms, 'horizontal')
+        self.x = self.hitbox.centerx
 
-        self.y += self.vel_y
-        self.rect.y = int(self.y)
+        # Вертикальное движение
+        self.hitbox.centery = int(self.y + self.vel_y)
         self.check_collisions(platforms, 'vertical')
+        self.y = self.hitbox.centery
 
+        # Обновляем rect (для отрисовки и частиц)
+        self.rect = self.hitbox
+
+        # Обнаружение стены
         self.on_wall = False
         self.wall_side = 0
         if not self.on_ground:
@@ -246,7 +258,6 @@ class Player:
             self.jump_held = True
             self.jump_start_time = time.time()
             self.jump_count = 1
-            # === Эффект: искры при wall jump ===
             self.add_spark_particles()
 
         if self.vel_x > 0:
@@ -256,66 +267,59 @@ class Player:
             self.last_dir = -1
             self.facing_right = False
 
-        # === ОБНОВЛЕНИЕ ГРАФИКИ ===
+        # === ОБНОВЛЕНИЕ АНИМАЦИИ ===
         self.state = self.determine_state()
 
-        # Меняем анимацию при смене состояния
         if self.state != prev_state:
             self.current_animation = self.animations[self.state]
             self.current_animation.reset()
 
-        # Обновляем анимацию
         self.current_animation.update(dt_ms)
         self.image = self.current_animation.get_current_frame()
 
-        # Отражаем по горизонтали, если нужно
         if not self.facing_right:
             self.image = pygame.transform.flip(self.image, True, False)
 
-        # === Частицы: пыль при беге по земле ===
+        # Частицы
         if self.state == 'run' and self.on_ground and prev_on_ground:
             self.add_dust_particles()
 
-        # === Обновляем частицы ===
         self.particles = [p for p in self.particles if not p.update(dt_ms)]
 
-    # --- остальные методы без изменений ---
-    def check_wall_collision(self, side, platforms):
+    def check_wall_collision(self, side: int, platforms: List[pygame.Rect]) -> bool:
         if side == -1:
-            test_x = self.rect.left - 1
+            test_x = self.hitbox.left - 1
         elif side == 1:
-            test_x = self.rect.right + 1
+            test_x = self.hitbox.right + 1
         else:
             return False
-        test_rect = pygame.Rect(test_x, self.rect.top, 1, self.rect.height)
+        test_rect = pygame.Rect(test_x, self.hitbox.top, 1, self.hitbox.height)
         for plat in platforms:
             if test_rect.colliderect(plat):
                 return True
         return False
 
-    def check_collisions(self, platforms, direction):
+    def check_collisions(self, platforms: List[pygame.Rect], direction: str):
         for plat in platforms:
-            if self.rect.colliderect(plat):
+            if self.hitbox.colliderect(plat):
                 if direction == 'horizontal':
                     if self.vel_x > 0:
-                        self.rect.right = plat.left
+                        self.hitbox.right = plat.left
                     elif self.vel_x < 0:
-                        self.rect.left = plat.right
-                    self.x = self.rect.x
+                        self.hitbox.left = plat.right
+                    self.x = self.hitbox.centerx
                     self.vel_x = 0
                 elif direction == 'vertical':
                     if self.vel_y > 0:
-                        self.rect.bottom = plat.top
+                        self.hitbox.bottom = plat.top
                         self.on_ground = True
                         self.jump_count = 0
                     elif self.vel_y < 0:
-                        self.rect.top = plat.bottom
+                        self.hitbox.top = plat.bottom
                     self.vel_y = 0
-                    self.y = self.rect.y
+                    self.y = self.hitbox.centery
 
     def draw(self, screen, camera):
-        # Рисуем игрока
-        screen.blit(self.image, (self.rect.x - camera.x, self.rect.y - camera.y))
-        # Рисуем частицы
+        screen.blit(self.image, (self.hitbox.x - camera.x, self.hitbox.y - camera.y))
         for p in self.particles:
             p.draw(screen, camera)

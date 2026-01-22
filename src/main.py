@@ -5,8 +5,7 @@ from level import Level
 from ui.sound import SoundManager  # ← ДОБАВЛЕНО
 import sys
 
-# Граница смерти: если игрок падает ниже этой Y-координаты — умирает
-LEVEL_DEATH_Y = 800
+LEVEL_DEATH_Y = 700
 
 # === UI-КЛАССЫ (встроены для простоты) ===
 
@@ -43,7 +42,7 @@ class MainMenu:
                     if self.selected == 0:
                         return "start"
                     elif self.selected == 1:
-                        return "settings"  # пока заглушка
+                        return "settings"
                     elif self.selected == 2:
                         pygame.quit()
                         sys.exit()
@@ -98,16 +97,13 @@ class HUD:
         self.start_time = start_time
 
     def draw(self):
-        # Здоровье
         health_text = self.font.render(f"Health: {self.player.health}", True, (255, 255, 255))
         self.screen.blit(health_text, (10, 10))
 
-        # Таймер
         elapsed_sec = (pygame.time.get_ticks() - self.start_time) // 1000
         timer_text = self.font.render(f"Time: {elapsed_sec}s", True, (255, 255, 255))
         self.screen.blit(timer_text, (10, 40))
 
-        # Подсказка
         hint = self.font.render("Press ESC to pause", True, (200, 200, 200))
         self.screen.blit(hint, (10, self.screen.get_height() - 30))
 
@@ -140,6 +136,39 @@ class DeathScreen:
         return None
 
 
+class WinScreen:
+    def __init__(self, screen, font):
+        self.screen = screen
+        self.font = font
+
+    def draw(self):
+        self.screen.fill((0, 0, 0))
+        title = self.font.render("You Win!", True, (255, 215, 0))
+        time_text = self.font.render(f"Time: {self.elapsed_time}s", True, (255, 255, 255))
+        restart = self.font.render("Press R to Restart", True, (200, 200, 200))
+        menu = self.font.render("Press M for Main Menu", True, (200, 200, 200))
+
+        self.screen.blit(title, (self.screen.get_width() // 2 - title.get_width() // 2, 200))
+        self.screen.blit(time_text, (self.screen.get_width() // 2 - time_text.get_width() // 2, 260))
+        self.screen.blit(restart, (self.screen.get_width() // 2 - restart.get_width() // 2, 320))
+        self.screen.blit(menu, (self.screen.get_width() // 2 - menu.get_width() // 2, 360))
+
+    def set_time(self, elapsed_time):
+        self.elapsed_time = elapsed_time
+
+    def handle_input(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:
+                    return "restart"
+                elif event.key == pygame.K_m:
+                    return "menu"
+        return None
+
+
 # === ОСНОВНЫЕ КЛАССЫ ИГРЫ ===
 
 class Camera:
@@ -158,13 +187,14 @@ def reset_game():
     """Создаёт новый уровень и игрока, возвращает их и время начала."""
     level = Level()
 
-    # Находим самую нижнюю платформу (землю)
-    ground_y = max(plat.y for plat in level.platforms if plat.width > 100 and plat.height > 50)
-    
-    min_x = min(plat.x for plat in level.platforms)
-    max_x = max(plat.x + plat.width for plat in level.platforms)
-    spawn_x = (min_x + max_x) // 2
-    spawn_y = ground_y - 28  # 28 — высота hitbox
+    start_platforms = [plat for plat in level.platforms if plat.x < 300 and plat.width > 80]
+    if not start_platforms:
+        ground_plat = next(plat for plat in level.platforms if plat.y == 580)
+    else:
+        ground_plat = max(start_platforms, key=lambda p: p.y)
+
+    spawn_x = 100
+    spawn_y = ground_plat.y - 28
 
     player = Player(spawn_x, spawn_y)
     start_time = pygame.time.get_ticks()
@@ -178,7 +208,6 @@ def main():
     clock = pygame.time.Clock()
     font = pygame.font.Font(None, 36)
 
-    # === ИНИЦИАЛИЗАЦИЯ ЗВУКА ===
     sound_manager = SoundManager()
 
     game_state = "menu"
@@ -190,6 +219,7 @@ def main():
     pause_menu = PauseMenu(screen, font)
     hud = HUD(screen, font, player, start_time)
     death_screen = DeathScreen(screen, font)
+    win_screen = WinScreen(screen, font)  # ← ДОБАВЛЕНО
 
     running = True
     while running:
@@ -202,7 +232,8 @@ def main():
                 level, player, start_time = reset_game()
                 camera = Camera(800, 600)
                 hud = HUD(screen, font, player, start_time)
-                sound_manager.resume_music()  # ← ВКЛЮЧИТЬ МУЗЫКУ
+                win_screen = WinScreen(screen, font)  # ← СБРОС ЭКРАНА ПОБЕДЫ
+                sound_manager.resume_music()
                 game_state = "playing"
             elif action == "settings":
                 pass
@@ -217,8 +248,15 @@ def main():
             player.update(level.platforms, dt_ms)
             camera.update(player)
 
+            # Проверка смерти
             if player.health <= 0 or player.rect.top > LEVEL_DEATH_Y:
                 game_state = "dead"
+
+            # 🔥 ПРОВЕРКА ПОБЕДЫ: касание финишной зоны
+            if player.hitbox.colliderect(level.finish_zone):
+                elapsed_sec = (pygame.time.get_ticks() - start_time) // 1000
+                win_screen.set_time(elapsed_sec)
+                game_state = "win"
 
             screen.fill((0, 0, 0))
             level.draw(screen, camera, dt_ms)
@@ -231,7 +269,7 @@ def main():
             if action == "resume":
                 game_state = "playing"
             elif action == "menu":
-                sound_manager.stop_music()  # ← ВЫКЛЮЧИТЬ МУЗЫКУ
+                sound_manager.stop_music()
                 game_state = "menu"
 
         elif game_state == "dead":
@@ -241,10 +279,24 @@ def main():
                 level, player, start_time = reset_game()
                 camera = Camera(800, 600)
                 hud = HUD(screen, font, player, start_time)
-                sound_manager.resume_music()  # ← ВКЛЮЧИТЬ МУЗЫКУ
+                sound_manager.resume_music()
                 game_state = "playing"
             elif action == "menu":
-                sound_manager.stop_music()  # ← ВЫКЛЮЧИТЬ МУЗЫКУ
+                sound_manager.stop_music()
+                game_state = "menu"
+
+        # 🔥 НОВОЕ СОСТОЯНИЕ: ПОБЕДА
+        elif game_state == "win":
+            action = win_screen.handle_input()
+            win_screen.draw()
+            if action == "restart":
+                level, player, start_time = reset_game()
+                camera = Camera(800, 600)
+                hud = HUD(screen, font, player, start_time)
+                sound_manager.resume_music()
+                game_state = "playing"
+            elif action == "menu":
+                sound_manager.stop_music()
                 game_state = "menu"
 
         pygame.display.flip()
